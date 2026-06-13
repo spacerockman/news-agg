@@ -430,7 +430,34 @@ function getNews() {
 
 const html = readFileSync(`${__dirname}/index.html`, "utf-8");
 
-const server = createServer((req, res) => {
+function extractArticleText(html) {
+  let s = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "");
+  s = s.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "");
+  s = s.replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, "");
+  s = s.replace(/<header[^>]*>[\s\S]*?<\/header>/gi, "");
+  s = s.replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, "");
+  s = s.replace(/<aside[^>]*>[\s\S]*?<\/aside>/gi, "");
+  s = s.replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, "");
+  s = s.replace(/<img[^>]*>/gi, "");
+  s = s.replace(/<br\s*\/?>/gi, "\n");
+  s = s.replace(/<\/p>/gi, "\n\n");
+  s = s.replace(/<\/h[1-6]>/gi, "\n\n");
+  s = s.replace(/<\/li>/gi, "\n");
+  s = s.replace(/<[^>]+>/g, "");
+  s = s.replace(/&nbsp;/g, " ");
+  s = s.replace(/&amp;/g, "&");
+  s = s.replace(/&lt;/g, "<");
+  s = s.replace(/&gt;/g, ">");
+  s = s.replace(/&quot;/g, '"');
+  s = s.replace(/&#(\d+);/g, (_, d) => String.fromCharCode(+d));
+  s = s.replace(/\n{3,}/g, "\n\n");
+  s = s.replace(/[ \t]+\n/g, "\n");
+  s = s.replace(/\n[ \t]+/g, "\n");
+  const lines = s.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+  return lines.join("\n").slice(0, 8000);
+}
+
+const server = createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const json = (body, code = 200) => {
     const s = JSON.stringify(body);
@@ -459,8 +486,26 @@ const server = createServer((req, res) => {
 
   if (url.pathname === "/api/refresh") {
     refreshCache();
-    json({ ok: true });
-    return;
+    return json({ ok: true });
+  }
+
+  if (url.pathname === "/api/read") {
+    const target = url.searchParams.get("url");
+    if (!target) return json({ error: "missing url" }, 400);
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      const r = await fetch(target, {
+        headers: { "User-Agent": "NewsAgg/1.0" },
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      const html = await r.text();
+      const text = extractArticleText(html);
+      return json({ text, url: target });
+    } catch (e) {
+      return json({ error: e.message }, 500);
+    }
   }
 
   res.writeHead(404);
