@@ -1,8 +1,10 @@
 # News Aggregator — AI Agent Context
 
-> Last updated: 2026-06-13  
-> This file is the authoritative source of truth about this project for any AI assistant.  
-> **Rule: after every meaningful change, the AI must update this file.**
+> Last updated: 2026-06-13
+> **⚠️ CRITICAL: After every change to this project, update this file and CHANGELOG.md.**
+> opencode loads these via `.opencode/opencode.json` → `"instructions": ["AGENTS.md", "CHANGELOG.md"]`
+
+This file is the authoritative source of truth about this project for any AI assistant.
 
 ## 1. WHAT THIS PROJECT IS
 
