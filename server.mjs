@@ -468,17 +468,21 @@ const server = createServer((req, res) => {
   if (url.pathname === "/api/open") {
     const target = url.searchParams.get("url");
     if (!target) return json({ error: "missing url" }, 400);
+    const safe = target.replace(/"/g, '\\"').replace(/\\/g, "\\\\");
     const script = `
       tell application "Safari"
         activate
-        open location "${target.replace(/"/g, '\\"')}"
-        delay 1.5
+        open location "${safe}"
       end tell
       tell application "System Events"
         tell process "Safari"
-          try
-            click menu item "Show Reader" of menu "View" of menu bar 1
-          end try
+          repeat 6 times
+            delay 1.2
+            try
+              click menu item "Show Reader" of menu "View" of menu bar 1
+              exit repeat
+            end try
+          end repeat
         end tell
       end tell
     `;
