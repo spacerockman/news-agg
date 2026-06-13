@@ -468,10 +468,6 @@ const server = createServer((req, res) => {
   if (url.pathname === "/api/open") {
     const target = url.searchParams.get("url");
     if (!target) return json({ error: "missing url" }, 400);
-    const mode = url.searchParams.get("mode");
-    const openURL = mode === "original"
-      ? target
-      : `https://www.removepaywall.com/search?url=${encodeURIComponent(target)}`;
     const script = `
       on run argv
         tell application "Safari"
@@ -480,7 +476,7 @@ const server = createServer((req, res) => {
         end tell
       end run
     `;
-    execFile("osascript", ["-e", script, openURL], (err) => {
+    execFile("osascript", ["-e", script, target], (err) => {
       if (err) console.error("osascript:", err.message.slice(0, 80));
     });
     return json({ ok: true });

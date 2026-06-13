@@ -87,8 +87,6 @@ body.loading .btn{pointer-events:none;opacity:.5}
 .art .bd .src .dot{color:var(--border);margin:0 3px}
 .art .bd .src .merged-badge{color:var(--accent)}
 .art .bd .src .self-badge{color:var(--green)}
-.art .bd .src .open-original{color:var(--muted);text-decoration:none;border-bottom:1px dotted var(--border);margin-left:6px}
-.art .bd .src .open-original:hover{color:var(--accent);border-color:var(--accent)}
 
 /* loading */
 .skel{display:grid;grid-template-columns:44px 82px 1fr;gap:8px;padding:12px 4px;border-bottom:1px solid #f0f0f0}
@@ -140,8 +138,7 @@ body.loading .btn{pointer-events:none;opacity:.5}
   <div class="h"><kbd>r</kbd> <span data-i18n="refresh">refresh</span></div>
   <div class="h"><kbd>1-5</kbd> <span data-i18n="filter">filter</span></div>
   <div class="h"><kbd>k</kbd> <span data-i18n="toggleCat">toggle cat</span></div>
-  <div class="h">click title → RemovePaywall</div>
-  <div class="h">orig → source</div>
+  <div class="h">click title → Safari</div>
   <div class="h">drag tags ↕</div>
 </div>
 
@@ -288,7 +285,7 @@ function renderArticles(items) {
       <div class="cat ${catClass}"${!showCat?' style="opacity:.15"':''}>${catLabel}</div>
       <div class="bd" onclick="openLink(this)">
         <div class="ttl">${flags ? `<span class="flags">${flags}</span>` : ""}${esc(displayTitle)}</div>
-        <div class="src">${sourceLine} <span class="dot">·</span> <a class="open-original" href="#" onclick="openOriginal(event, this)">orig</a></div>
+        <div class="src">${sourceLine}</div>
       </div>
     </div>`;
   }).join("");
@@ -303,13 +300,6 @@ function esc(s) {
 function openLink(el) {
   const link = el.closest(".art")?.dataset.link;
   if (link) fetch("/api/open?url=" + encodeURIComponent(link));
-}
-
-function openOriginal(e, el) {
-  e.preventDefault();
-  e.stopPropagation();
-  const link = el.closest(".art")?.dataset.link;
-  if (link) fetch("/api/open?mode=original&url=" + encodeURIComponent(link));
 }
 
 async function load(fetchFlag = true) {

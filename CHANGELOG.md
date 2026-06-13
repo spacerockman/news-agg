@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.3] - 2026-06-13
+
+### Changed
+- Restored headline clicks to open the original publisher URL directly in Safari.
+- Removed the article-list `orig` fallback link because direct original opening is now the only path.
+- `/api/open` now passes the source article URL to Safari without RemovePaywall wrapping.
+
+---
+
 ## [0.4.2] - 2026-06-13
 
 ### Added
