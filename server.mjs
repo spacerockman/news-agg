@@ -468,16 +468,16 @@ const server = createServer((req, res) => {
   if (url.pathname === "/api/open") {
     const target = url.searchParams.get("url");
     if (!target) return json({ error: "missing url" }, 400);
-    const safe = target.replace(/"/g, '\\"').replace(/\\/g, "\\\\");
     const script = `
       tell application "Safari"
         activate
-        open location "${safe}"
+        open location "${target.replace(/"/g, '\\"')}"
       end tell
+      delay 0.5
       tell application "System Events"
         tell process "Safari"
-          repeat 6 times
-            delay 1.2
+          repeat 10 times
+            delay 0.8
             try
               click menu item "Show Reader" of menu "View" of menu bar 1
               exit repeat
@@ -487,7 +487,7 @@ const server = createServer((req, res) => {
       end tell
     `;
     execFile("osascript", ["-e", script], (err) => {
-      if (err) console.error("osascript error:", err.message.slice(0, 100));
+      if (err) console.error("osascript:", err.message.slice(0, 80));
     });
     return json({ ok: true });
   }

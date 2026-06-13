@@ -300,6 +300,7 @@ function esc(s) {
 function openLink(el) {
   const link = el.closest(".art")?.dataset.link;
   if (link) {
+    window.open(link, "_blank");
     fetch("/api/open?url=" + encodeURIComponent(link));
   }
 }
