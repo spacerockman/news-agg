@@ -3,6 +3,7 @@ import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import os from "os";
+import { execFile } from "child_process";
 
 const PORT = 18180;
 const CONFIG_PATH = `${process.env.HOME}/.config/opencode/opencode.json`;
@@ -461,6 +462,29 @@ const server = createServer((req, res) => {
 
   if (url.pathname === "/api/refresh") {
     refreshCache();
+    return json({ ok: true });
+  }
+
+  if (url.pathname === "/api/open") {
+    const target = url.searchParams.get("url");
+    if (!target) return json({ error: "missing url" }, 400);
+    const script = `
+      tell application "Safari"
+        activate
+        open location "${target.replace(/"/g, '\\"')}"
+        delay 1.5
+      end tell
+      tell application "System Events"
+        tell process "Safari"
+          try
+            click menu item "Show Reader" of menu "View" of menu bar 1
+          end try
+        end tell
+      end tell
+    `;
+    execFile("osascript", ["-e", script], (err) => {
+      if (err) console.error("osascript error:", err.message.slice(0, 100));
+    });
     return json({ ok: true });
   }
 

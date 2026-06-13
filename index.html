@@ -138,7 +138,7 @@ body.loading .btn{pointer-events:none;opacity:.5}
   <div class="h"><kbd>r</kbd> <span data-i18n="refresh">refresh</span></div>
   <div class="h"><kbd>1-5</kbd> <span data-i18n="filter">filter</span></div>
   <div class="h"><kbd>k</kbd> <span data-i18n="toggleCat">toggle cat</span></div>
-  <div class="h"><kbd>⌘⇧R</kbd> Safari Reader (open link first)</div>
+  <div class="h"><kbd>⇧R</kbd> Safari auto-Reader</div>
   <div class="h">drag tags ↕</div>
 </div>
 
@@ -299,7 +299,9 @@ function esc(s) {
 
 function openLink(el) {
   const link = el.closest(".art")?.dataset.link;
-  if (link) window.open(link, "_blank");
+  if (link) {
+    fetch("/api/open?url=" + encodeURIComponent(link));
+  }
 }
 
 async function load(fetchFlag = true) {
