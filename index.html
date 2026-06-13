@@ -279,7 +279,7 @@ function renderArticles(items) {
       : `${sources}`;
     const catClass = (a.category || "World").replace(/\s+/g, "");
     const catLabel = catT(a.category);
-    const displayTitle = (lang === "zh" && a.titleZh) ? a.titleZh : a.title;
+    const displayTitle = a.title;
     return `<div class="art" data-link="${a.link}" data-title="${esc(displayTitle)}">
       <div class="t">${fmtTime(a.pubDate)}</div>
       <div class="cat ${catClass}"${!showCat?' style="opacity:.15"':''}>${catLabel}</div>

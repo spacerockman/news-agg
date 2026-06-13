@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.4.0] - 2026-06-13
+
+### Added
+- **JP native-language feeds**: Yahoo JP (4 categories), Livedoor — Japanese titles now display in 日本語
+- **CN independent feeds**: 36氪, SCMP, 香港01, 德国之声 — no government/state media
+- Per-article `lang` field (ja/en/zh) for native language display
+- Response item cap (500 max) to prevent crashes on large datasets
+- Git version control with `.opencode/` auto-context for AI agents
+
+### Removed
+- **All Chinese state media**: 人民网 ×5, CGTN, China Daily, Sixth Tone, People's Daily English
+- **Global Chinese translation** (translateTitles) — savings: ~¥0.004/refresh
+- Lang toggle now controls UI only (categories, labels), not title translation
+
+### Changed
+- CN time-filter back to 12h (was unlimited — to exclude stale state media)
+- AI dedup prompt: now handles multilingual (EN/JA/ZH) cross-language matching
+- AI dedup: pick verbatim original title instead of AI-generated short text
+
+---
+
 ## [0.3.0] - 2026-06-13
 
 ### Added

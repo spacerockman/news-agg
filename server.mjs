@@ -48,17 +48,22 @@ const FEEDS = [
   { url: "https://www.9news.com.au/rss", source: "9News", country: "AU" },
   { url: "https://www.ntnews.com.au/content-feeds/latest-news/", source: "NT News", country: "AU" },
 
-  { url: "https://www.japantimes.co.jp/feed/", source: "Japan Times", country: "JP" },
-  { url: "https://japantoday.com/feed", source: "Japan Today", country: "JP" },
-  { url: "https://mainichi.jp/rss/etc/mainichi-en.rss", source: "Mainichi", country: "JP" },
-  { url: "https://soranews24.com/feed/", source: "SoraNews24", country: "JP" },
-  { url: "https://www.tokyoreporter.com/feed/", source: "Tokyo Reporter", country: "JP" },
+  { url: "https://www.japantimes.co.jp/feed/", source: "Japan Times", country: "JP", lang: "ja" },
+  { url: "https://japantoday.com/feed", source: "Japan Today", country: "JP", lang: "ja" },
+  { url: "https://mainichi.jp/rss/etc/mainichi-en.rss", source: "Mainichi", country: "JP", lang: "ja" },
+  { url: "https://soranews24.com/feed/", source: "SoraNews24", country: "JP", lang: "ja" },
+  { url: "https://www.tokyoreporter.com/feed/", source: "Tokyo Reporter", country: "JP", lang: "ja" },
 
-  { url: "https://www.chinadaily.com.cn/rss/world_rss.xml", source: "China Daily", country: "CN" },
-  { url: "https://www.scmp.com/rss/4/feed", source: "SCMP", country: "CN" },
-  { url: "https://www.cgtn.com/subscribe/rss/section/world.xml", source: "CGTN", country: "CN" },
-  { url: "https://www.sixthtone.com/rss", source: "Sixth Tone", country: "CN" },
-  { url: "https://en.people.cn/rss/90785.xml", source: "People's Daily", country: "CN" },
+  { url: "https://news.yahoo.co.jp/rss/categories/domestic.xml", source: "Yahoo JP", country: "JP", lang: "ja" },
+  { url: "https://news.yahoo.co.jp/rss/categories/world.xml", source: "Yahoo JP World", country: "JP", lang: "ja" },
+  { url: "https://news.yahoo.co.jp/rss/categories/it.xml", source: "Yahoo JP IT", country: "JP", lang: "ja" },
+  { url: "https://news.yahoo.co.jp/rss/categories/business.xml", source: "Yahoo JP Biz", country: "JP", lang: "ja" },
+  { url: "https://news.livedoor.com/topics/rss/top.xml", source: "Livedoor", country: "JP", lang: "ja" },
+
+  { url: "https://www.scmp.com/rss/4/feed", source: "SCMP", country: "CN", lang: "en" },
+  { url: "https://36kr.com/feed", source: "36氪", country: "CN", lang: "zh" },
+  { url: "https://www.hk01.com/rss/latest.xml", source: "香港01", country: "CN", lang: "zh" },
+  { url: "https://www.dwnews.com/rss/", source: "德国之声", country: "CN", lang: "zh" },
 ];
 
 let rawCache = null;
@@ -102,7 +107,7 @@ function extractDateFromURL(link) {
   return "";
 }
 
-function parseRSS(xml, source, country) {
+function parseRSS(xml, source, country, lang = "en") {
   const items = xml.match(/<item>[\s\S]*?<\/item>/gi);
   if (!items) return [];
   return items.map(item => {
@@ -110,7 +115,7 @@ function parseRSS(xml, source, country) {
     const link = extractLink(item);
     const pubDate = extractDate(item) || extractDateFromURL(link);
     const rssCat = extract(item, "category");
-    return { title, link, pubDate, source, country, rssCat };
+    return { title, link, pubDate, source, country, rssCat, lang };
   }).filter(a => a.title && a.link);
 }
 
@@ -142,7 +147,7 @@ async function fetchFeed(feed) {
     clearTimeout(timeout);
     if (!res.ok) return [];
     const xml = await res.text();
-    return parseRSS(xml, feed.source, feed.country);
+    return parseRSS(xml, feed.source, feed.country, feed.lang);
   } catch {
     return [];
   }
@@ -165,13 +170,13 @@ async function callDeepSeek(articles) {
     country: a.country,
   }));
 
-  const systemPrompt = `You are a news deduplicator. Given articles, group those covering the same story.
+  const systemPrompt = `You are a news deduplicator. Given articles (titles may be in English, Japanese, or Chinese), group those covering the same story — cross-language merge when possible.
 
 Input: array of {id,title,source,country}
 
 Return JSON with exactly two keys:
 - "groups": array of merged stories (when 2+ articles cover the same story)
-  each: {"title":"shortest clear title","ids":[0,1],"category":"World"}
+  each: {"title":"pick the best original title verbatim","ids":[0,1],"category":"World"}
 - "standalone": array of articles that DON'T merge with any other
   each: {"id":5,"category":"Politics"}
 
@@ -244,6 +249,7 @@ function buildResponse(articles, aiResult) {
       pubDate: a.pubDate,
       source: a.source,
       country: countryFlag(a.country),
+      lang: a.lang || "en",
       category: a.rssCat || "World",
       type: "standalone",
       sources: [a.source],
@@ -273,6 +279,7 @@ function buildResponse(articles, aiResult) {
       pubDate: sorted[0].pubDate,
       source: sorted[0].source,
       country: sorted[0].country.toLowerCase(),
+      lang: sorted[0].lang || "en",
       category: g.category || "World",
       type: "merged",
       sources: uniqueSources,
@@ -293,6 +300,7 @@ function buildResponse(articles, aiResult) {
       pubDate: a.pubDate,
       source: a.source,
       country: countryFlag(a.country),
+      lang: a.lang || "en",
       category: sa.category || a.rssCat || "World",
       type: "standalone",
       sources: [a.source],
@@ -311,6 +319,7 @@ function buildResponse(articles, aiResult) {
       pubDate: a.pubDate,
       source: a.source,
       country: countryFlag(a.country),
+      lang: a.lang || "en",
       category: a.rssCat || "World",
       type: "standalone",
       sources: [a.source],
@@ -328,70 +337,7 @@ function buildResponse(articles, aiResult) {
     return vb - va;
   });
   const mergedCount = items.filter(i => i.merged).length;
-  return { items, updatedAt, totalRaw, merged: mergedCount, aiStatus: "ok", ts };
-}
-
-async function translateTitles(titles) {
-  if (titles.length === 0) return [];
-  const TB = 80;
-  const batches = [];
-  for (let i = 0; i < titles.length; i += TB) {
-    batches.push(titles.slice(i, i + TB));
-  }
-  const allResults = await Promise.allSettled(
-    batches.map(async (batch) => {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 30000);
-      try {
-        const res = await fetch(`${DEEPSEEK.baseURL}/v1/chat/completions`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${DEEPSEEK.apiKey}`,
-          },
-          body: JSON.stringify({
-            model: DEEPSEEK.model,
-            messages: [
-              { role: "system", content: "Translate each title to Chinese. Return ONLY JSON: {\"items\":[...]} in same order. No explanation." },
-              { role: "user", content: JSON.stringify(batch) },
-            ],
-            response_format: { type: "json_object" },
-            max_tokens: Math.max(batch.length * 50, 4096),
-            temperature: 0,
-          }),
-          signal: controller.signal,
-        });
-        clearTimeout(timeout);
-        if (!res.ok) { console.error("Translation API error:", res.status); return []; }
-        const json = await res.json();
-        const text = json.choices?.[0]?.message?.content;
-        if (!text) return [];
-        const cleaned = text.replace(/^```(?:json)?\s*|```\s*$/g, "").trim();
-        let parsed = {};
-        try { parsed = JSON.parse(cleaned); } catch (e) {
-          console.error("Translation JSON parse error:", e.message.slice(0, 80));
-          return [];
-        }
-        const arr = parsed.items || parsed.translations || parsed.translated || [];
-        return Array.isArray(arr) ? arr : [];
-      } catch (err) {
-        console.error("Translation call failed:", err.message);
-        return [];
-      }
-    })
-  );
-  const result = new Array(titles.length);
-  let offset = 0;
-  for (const r of allResults) {
-    if (r.status === "fulfilled" && Array.isArray(r.value)) {
-      for (let j = 0; j < r.value.length && offset + j < result.length; j++) {
-        result[offset + j] = r.value[j];
-      }
-    }
-    offset += TB;
-  }
-  console.error(`Translation: ${result.filter(Boolean).length}/${titles.length} titles translated`);
-  return result.filter(Boolean);
+  return { items: items.slice(0, 500), updatedAt, totalRaw, merged: mergedCount, aiStatus: "ok", ts };
 }
 
 async function refreshCache() {
@@ -434,15 +380,6 @@ async function refreshCache() {
     }
     finalCache = buildResponse(articles, aiResult);
     finalCache.aiReady = true;
-
-    const titles = finalCache.items.map(i => i.title);
-    const zhTitles = await translateTitles(titles);
-    if (zhTitles.length === titles.length) {
-      for (let i = 0; i < finalCache.items.length; i++) {
-        finalCache.items[i].titleZh = zhTitles[i];
-      }
-      finalCache.zhReady = true;
-    }
 
     console.error(`Cache ready: ${finalCache.items.length} items (${finalCache.merged} merged)`);
   } catch (err) {

@@ -1,6 +1,6 @@
 # News Aggregator — AI Agent Context
 
-> Last updated: 2026-06-13
+> Last updated: 2026-06-13 (v0.4.0)
 > **⚠️ CRITICAL: After every change to this project, update this file and CHANGELOG.md.**
 > opencode loads these via `.opencode/opencode.json` → `"instructions": ["AGENTS.md", "CHANGELOG.md"]`
 
@@ -9,7 +9,7 @@ This file is the authoritative source of truth about this project for any AI ass
 ## 1. WHAT THIS PROJECT IS
 
 A **zero-dependency, single-page news aggregator** for macOS.  
-Fetches RSS feeds from 26 news portals across 5 countries, deduplicates via DeepSeek Flash AI, translates headlines to Chinese, and displays in a minimalist terminal-style white UI. Runs as a `launchd` background service, accessible from Mac + iPhone on the same WiFi.
+Fetches RSS feeds from 28 news portals across 5 countries, deduplicates via DeepSeek Flash AI, and displays in a minimalist terminal-style white UI. Each country's news displays in its native language: JP in Japanese, CN in Chinese, EN for others. Runs as a `launchd` background service, accessible from Mac + iPhone on the same WiFi.
 
 **Goal:** Maximum information density with minimum visual noise. AI-powered dedup removes duplicate stories. Native-like experience via Safari pinned tab.
 
@@ -91,33 +91,28 @@ Page load → load(true)
 ### AI Pipeline
 
 ```
-RSS feeds (26)
+RSS feeds (28)
   → fetchAllFeeds (parseRSS regex)
-  → timeFilter (12h window)
-  → callDeepSeek (dedup: 3 batches, JSON format)
-  → translateTitles (translate: 3 batches, JSON format)
-  → buildResponse (sort, merge sources)
+  → timeFilter (12h window, all countries)
+  → callDeepSeek (dedup: 3-5 batches, multilingual matching)
+  → buildResponse (sort, merge sources, cap 500 items)
 ```
 
 ---
 
-## 4. CURRENT RSS FEEDS (26 total)
+## 4. CURRENT RSS FEEDS (28 total)
 
 | Country | Feeds |
 |---------|-------|
 | US (6)  | CNN, NYT, NPR, USA Today, Fox News, MarketWatch |
 | UK (5)  | BBC, Guardian, Sky News, Independent, Telegraph |
 | AU (5)  | ABC News, SMH, news.com.au, 9News, NT News |
-| JP (5)  | Japan Times, Japan Today, Mainichi, SoraNews24, Tokyo Reporter |
-| CN (5)  | China Daily, SCMP, CGTN, Sixth Tone, People's Daily |
+| JP (10) | Japan Times, Japan Today, Mainichi, SoraNews24, Tokyo Reporter, Yahoo JP ×4, Livedoor |
+| CN (4)  | SCMP, 36氪, 香港01, 德国之声 |
 
-**Known issues:**
-- China Daily articles have CDATA-wrapped `<link>` tags → partially fixed (extractLink handles CDATA), but many articles lack `<pubDate>` and are filtered out by 12h window.
-- Sixth Tone, People's Daily: items exist but may fail timeFilter (old dates or different date format).
-- CNN `edition.rss` serves old (2023) articles. Newer articles have dates, few have shortened URLs (cnn.it).
-- Washington Post feeds are geo-blocked from China. Replaced with USA Today.
-- NHK World RSS retired. Replaced with Japan Today.
-- Xinhua English RSS serves 2017-2018 articles only (not included).
+**Language mapping:** JP → ja, CN → zh/varies, US/UK/AU → en
+
+**Policy:** NO Chinese state media (人民网, CGTN, China Daily, Xinhua, Global Times, etc.)
 
 ---
 
@@ -129,17 +124,16 @@ RSS feeds (26)
 {
   "items": [{
     "id": "uuid",
-    "title": "EN title",
-    "titleZh": "中文标题",        // only if zhReady=true
+    "title": "article title in native language",
     "link": "https://...",
     "pubDate": "ISO or RFC 2822",
     "source": "CNN",
     "country": "us",
+    "lang": "en",
     "category": "World",
-    "merged": true,               // true if 2+ sources
+    "merged": true,
     "sources": ["CNN", "BBC"],
-    "countryFlags": ["us", "gb"],
-    "unique": true
+    "countryFlags": ["us", "gb"]
   }],
   "updatedAt": "14:30:22",
   "totalRaw": 275,
@@ -167,11 +161,10 @@ RSS feeds (26)
 
 | Operation | Tokens (est.) | Cost |
 |-----------|--------------|------|
-| AI dedup (3×89 articles) | ~9,900 | ~¥0.013 |
-| Translation (3×68 titles) | ~4,700 | ~¥0.004 |
-| **Per refresh total** | **~12,000** | **~¥0.017** |
+| AI dedup (5×100 articles) | ~16,000 | ~¥0.020 |
+| **Per refresh total** | **~16,000** | **~¥0.020** |
 
-At 3 refreshes/day (8h interval, quiet hours): ~¥1.50/month
+At 3 refreshes/day (8h interval, quiet hours): ~¥1.80/month
 
 ---
 
@@ -209,7 +202,8 @@ bash ~/Desktop/news-agg/run.sh stop
 
 ## 9. KNOWN ISSUES & TODO
 
-- [ ] China Daily, Sixth Tone, People's Daily: fix article parsing (CDATA `<link>`, date extraction)  
+- [ ] CN independent sources limited — most Chinese independent media lack RSS  
+- [ ] 香港01, 德国之声 feeds may be unstable (CDATA format, geo-restrictions)  
 - [ ] CNN feed serves mostly old articles; find alternative US source  
 - [ ] Some RSS feeds may fail silently — no UI indicator  
 - [ ] No error recovery when DeepSeek API is down (falls back to raw articles)  
