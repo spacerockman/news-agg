@@ -468,32 +468,16 @@ const server = createServer((req, res) => {
   if (url.pathname === "/api/open") {
     const target = url.searchParams.get("url");
     if (!target) return json({ error: "missing url" }, 400);
-    const safe = target.replace(/"/g, '\\"').replace(/\\/g, "\\\\");
+    const archive = "https://web.archive.org/" + target;
     const script = `
       tell application "Safari"
         activate
-        open location "https://www.removepaywall.com/search"
-        delay 3
-        tell front document
-          do JavaScript "
-            var input = document.getElementById('simple-search');
-            if (input) {
-              var setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-              setter.call(input, '${safe}');
-              input.dispatchEvent(new Event('input', {bubbles: true}));
-              setTimeout(function(){
-                var btn = document.getElementById('submitButton');
-                if (btn) btn.click();
-              }, 800);
-            }
-          "
-        end tell
-        delay 7
+        open location "${archive.replace(/"/g, '\\"')}"
       end tell
       tell application "System Events"
         tell process "Safari"
-          repeat 8 times
-            delay 0.8
+          repeat 10 times
+            delay 1
             try
               click menu item "Show Reader" of menu "View" of menu bar 1
               exit repeat
