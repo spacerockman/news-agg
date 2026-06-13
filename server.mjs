@@ -433,7 +433,7 @@ function getNews() {
 
 const html = readFileSync(`${__dirname}/index.html`, "utf-8");
 
-const server = createServer(async (req, res) => {
+const server = createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const json = (body, code = 200) => {
     const s = JSON.stringify(body);
@@ -472,14 +472,23 @@ const server = createServer(async (req, res) => {
     const script = `
       tell application "Safari"
         activate
-        open location "https://www.removepaywall.com/search?url=${safe}"
+        open location "https://www.removepaywall.com/search"
         delay 3
         tell front document
-          try
-            do JavaScript "var i=document.getElementById('simple-search');if(i){i.value='${safe}';document.getElementById('submitButton').click();}"
-          end try
+          do JavaScript "
+            var input = document.getElementById('simple-search');
+            if (input) {
+              var setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+              setter.call(input, '${safe}');
+              input.dispatchEvent(new Event('input', {bubbles: true}));
+              setTimeout(function(){
+                var btn = document.getElementById('submitButton');
+                if (btn) btn.click();
+              }, 800);
+            }
+          "
         end tell
-        delay 5
+        delay 7
       end tell
       tell application "System Events"
         tell process "Safari"
@@ -497,29 +506,6 @@ const server = createServer(async (req, res) => {
       if (err) console.error("osascript:", err.message.slice(0, 80));
     });
     return json({ ok: true });
-  }
-
-  if (url.pathname === "/api/read") {
-    const target = url.searchParams.get("url");
-    if (!target) return json({ error: "missing url" }, 400);
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
-      const r = await fetch("https://r.jina.ai/" + target, {
-        headers: { "Accept": "text/markdown" },
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
-      const text = await r.text();
-      const lines = text.split("\n");
-      const titleMatch = text.match(/^Title:\s*(.+)/m);
-      const title = titleMatch ? titleMatch[1] : "";
-      const start = lines.findIndex(l => l.startsWith("Markdown Content:"));
-      const content = start > -1 ? lines.slice(start + 1).join("\n").trim() : text;
-      return json({ title, text: content });
-    } catch (e) {
-      return json({ error: e.message }, 500);
-    }
   }
 
   res.writeHead(404);

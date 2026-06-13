@@ -108,19 +108,6 @@ body.loading .btn{pointer-events:none;opacity:.5}
 .footer .h{display:flex;gap:4px;align-items:center}
 .footer .h .hl{color:var(--muted)}
 .footer .h kbd{margin:0 1px}
-
-/* reader panel */
-.reader-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px}
-.reader-overlay.hidden{display:none}
-.reader-panel{background:#fff;max-width:680px;width:100%;max-height:88vh;border-radius:6px;box-shadow:0 8px 40px rgba(0,0,0,.15);display:flex;flex-direction:column;overflow:hidden}
-.reader-panel .rp-header{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:1px solid #eee;flex-shrink:0}
-.reader-panel .rp-header .rp-title{font-size:13px;font-weight:600;color:#333}
-.reader-panel .rp-close{background:none;border:none;font-size:18px;cursor:pointer;color:#999;padding:4px 8px;border-radius:4px}
-.reader-panel .rp-close:hover{background:#f0f0f0;color:#333}
-.reader-panel .rp-body{padding:24px 28px;overflow-y:auto;flex:1;font-family:"Georgia","Times New Roman",serif;font-size:15px;line-height:1.85;color:#222}
-.reader-panel .rp-body .rp-desc{white-space:pre-line}
-.reader-panel .rp-body .rp-orig{margin-top:12px;padding-top:12px;border-top:1px solid #eee;font-size:12px}
-.reader-panel .rp-body .rp-orig a{color:var(--accent)}
 </style>
 </head>
 <body>
@@ -151,18 +138,8 @@ body.loading .btn{pointer-events:none;opacity:.5}
   <div class="h"><kbd>r</kbd> <span data-i18n="refresh">refresh</span></div>
   <div class="h"><kbd>1-5</kbd> <span data-i18n="filter">filter</span></div>
   <div class="h"><kbd>k</kbd> <span data-i18n="toggleCat">toggle cat</span></div>
-  <div class="h">click title → preview · auto Safari Reader</div>
+  <div class="h">click title → Safari</div>
   <div class="h">drag tags ↕</div>
-</div>
-
-<div class="reader-overlay hidden" id="readerOverlay" onclick="closeReader(event)">
-  <div class="reader-panel" onclick="event.stopPropagation()">
-    <div class="rp-header">
-      <span class="rp-title" id="readerTitle"></span>
-      <button class="rp-close" onclick="closeReader()">✕</button>
-    </div>
-    <div class="rp-body" id="readerBody"></div>
-  </div>
 </div>
 
 <script>
@@ -321,38 +298,8 @@ function esc(s) {
 }
 
 function openLink(el) {
-  const art = el.closest(".art");
-  const link = art?.dataset.link;
-  const title = art?.dataset.title || "";
-  const raw = art?.dataset.desc || "";
-  const desc = raw.replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').trim();
-  if (!link) return;
-
-  const overlay = $("#readerOverlay");
-  const body = $("#readerBody");
-  const titleEl = $("#readerTitle");
-  overlay.classList.remove("hidden");
-  titleEl.textContent = title;
-  body.classList.add("loading");
-  body.innerHTML = desc ? `<div class="rp-desc">${esc(desc)}</div>` : `<div class="rp-desc" style="color:#999">Loading article...</div>`;
-
-  // Fetch full article text via Jina AI reader
-  fetch("/api/read?url=" + encodeURIComponent(link))
-    .then(r => r.json())
-    .then(json => {
-      body.classList.remove("loading");
-      const text = json.text || "";
-      const clean = text.replace(/!\[.*?\]\(.*?\)/g, "").replace(/\n{3,}/g, "\n\n").trim();
-      body.innerHTML = `<div class="rp-desc">${esc(clean)}</div>
-        <div class="rp-orig"><a href="${esc(link)}" target="_blank">Open original →</a></div>`;
-    })
-    .catch(() => {
-      body.classList.remove("loading");
-      if (!desc) body.innerHTML = `<div class="rp-desc" style="color:#999">Article unavailable</div>
-        <div class="rp-orig"><a href="${esc(link)}" target="_blank">Open in browser →</a></div>`;
-    });
-
-  fetch("/api/open?url=" + encodeURIComponent(link));
+  const link = el.closest(".art")?.dataset.link;
+  if (link) fetch("/api/open?url=" + encodeURIComponent(link));
 }
 
 function closeReader(e) {
@@ -444,7 +391,6 @@ $("#langBtn").addEventListener("click", switchLang);
 // Keyboard
 document.addEventListener("keydown", e => {
   if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
-  if (e.key === "Escape") { closeReader(); return; }
   const key = e.key.toLowerCase();
   if (key === "r") { e.preventDefault(); load(true); }
   else if (key === "k") {
