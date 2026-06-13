@@ -108,20 +108,6 @@ body.loading .btn{pointer-events:none;opacity:.5}
 .footer .h{display:flex;gap:4px;align-items:center}
 .footer .h .hl{color:var(--muted)}
 .footer .h kbd{margin:0 1px}
-
-/* reader */
-.reader-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px}
-.reader-overlay.hidden{display:none}
-.reader-panel{background:#fff;max-width:680px;width:100%;max-height:90vh;border-radius:6px;box-shadow:0 8px 40px rgba(0,0,0,.15);display:flex;flex-direction:column;overflow:hidden}
-.reader-panel .rp-header{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:1px solid #eee;flex-shrink:0}
-.reader-panel .rp-header .rp-title{font-size:13px;font-weight:600;color:#333}
-.reader-panel .rp-close{background:none;border:none;font-size:18px;cursor:pointer;color:#999;padding:4px 8px;border-radius:4px}
-.reader-panel .rp-close:hover{background:#f0f0f0;color:#333}
-.reader-panel .rp-body{padding:24px 28px;overflow-y:auto;flex:1;font-family:"Georgia","Times New Roman",serif;font-size:15px;line-height:1.8;color:#222;white-space:pre-wrap}
-.reader-panel .rp-body.loading{color:#999;text-align:center;padding-top:60px}
-.reader-btn{display:inline-block;margin-left:6px;font-size:11px;cursor:pointer;color:var(--muted);padding:1px 4px;border:1px solid var(--border);border-radius:2px;opacity:0;transition:opacity .12s}
-.art:hover .reader-btn{opacity:1}
-.reader-btn:hover{color:var(--accent);border-color:var(--accent)}
 </style>
 </head>
 <body>
@@ -152,18 +138,8 @@ body.loading .btn{pointer-events:none;opacity:.5}
   <div class="h"><kbd>r</kbd> <span data-i18n="refresh">refresh</span></div>
   <div class="h"><kbd>1-5</kbd> <span data-i18n="filter">filter</span></div>
   <div class="h"><kbd>k</kbd> <span data-i18n="toggleCat">toggle cat</span></div>
-  <div class="h"><kbd>⌘⇧R</kbd> Safari Reader</div>
+  <div class="h"><kbd>⌘⇧R</kbd> Safari Reader (open link first)</div>
   <div class="h">drag tags ↕</div>
-</div>
-
-<div class="reader-overlay hidden" id="readerOverlay" onclick="closeReader(event)">
-  <div class="reader-panel" onclick="event.stopPropagation()">
-    <div class="rp-header">
-      <span class="rp-title" id="readerTitle">Reader</span>
-      <button class="rp-close" onclick="closeReader()">✕</button>
-    </div>
-    <div class="rp-body loading" id="readerBody">Loading...</div>
-  </div>
 </div>
 
 <script>
@@ -308,7 +284,7 @@ function renderArticles(items) {
       <div class="t">${fmtTime(a.pubDate)}</div>
       <div class="cat ${catClass}"${!showCat?' style="opacity:.15"':''}>${catLabel}</div>
       <div class="bd" onclick="openLink(this)">
-        <div class="ttl">${flags ? `<span class="flags">${flags}</span>` : ""}${esc(displayTitle)}<span class="reader-btn" onclick="event.stopPropagation();openReader('${esc(a.link)}','${esc(displayTitle)}')">▢</span></div>
+        <div class="ttl">${flags ? `<span class="flags">${flags}</span>` : ""}${esc(displayTitle)}</div>
         <div class="src">${sourceLine}</div>
       </div>
     </div>`;
@@ -391,30 +367,6 @@ function clearPoll() {
   if (aiPollTimer) { clearInterval(aiPollTimer); aiPollTimer = null; }
 }
 
-async function openReader(link, title) {
-  const overlay = $("#readerOverlay");
-  const body = $("#readerBody");
-  const titleEl = $("#readerTitle");
-  overlay.classList.remove("hidden");
-  titleEl.textContent = title;
-  body.textContent = "Loading...";
-  body.classList.add("loading");
-  try {
-    const res = await fetch("/api/read?url=" + encodeURIComponent(link));
-    const json = await res.json();
-    body.classList.remove("loading");
-    body.textContent = json.text || json.error || "No content";
-  } catch {
-    body.classList.remove("loading");
-    body.textContent = "Failed to load article";
-  }
-}
-
-function closeReader(e) {
-  if (e && e.target !== e.currentTarget) return;
-  $("#readerOverlay").classList.add("hidden");
-}
-
 // Filters
 $("#filters").addEventListener("click", e => {
   const btn = e.target.closest("button");
@@ -434,7 +386,6 @@ $("#langBtn").addEventListener("click", switchLang);
 // Keyboard
 document.addEventListener("keydown", e => {
   if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
-  if (e.key === "Escape") { closeReader(); return; }
   const key = e.key.toLowerCase();
   if (key === "r") { e.preventDefault(); load(true); }
   else if (key === "k") {
