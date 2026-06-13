@@ -225,3 +225,4 @@ bash ~/Desktop/news-agg/run.sh stop
 8. **port is 18180** — never change without updating launchd plist and this file.  
 9. **Quiet hours: 2AM-10AM** — respect this when modifying refresh logic.  
 10. **Cost constraint**: single refresh should stay under ¥0.02 (~12K tokens).  
+11. **After every change, push to GitHub**: `git add -A && git commit -m "..." && git push`.  

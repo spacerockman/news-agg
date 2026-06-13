@@ -62,8 +62,6 @@ const FEEDS = [
 
   { url: "https://www.scmp.com/rss/4/feed", source: "SCMP", country: "CN", lang: "en" },
   { url: "https://36kr.com/feed", source: "36氪", country: "CN", lang: "zh" },
-  { url: "https://www.hk01.com/rss/latest.xml", source: "香港01", country: "CN", lang: "zh" },
-  { url: "https://www.dwnews.com/rss/", source: "德国之声", country: "CN", lang: "zh" },
 ];
 
 let rawCache = null;
@@ -91,12 +89,14 @@ function extractLink(item) {
 }
 
 function extractDate(item) {
-  return (
+  let raw = (
     extract(item, "pubDate") ||
     extract(item, "dc:date") ||
     extract(item, "published") ||
     ""
   );
+  if (raw) raw = raw.replace(/(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})/, "$1T$2");
+  return raw;
 }
 
 function extractDateFromURL(link) {
@@ -159,7 +159,29 @@ async function fetchAllFeeds() {
   for (const r of results) {
     if (r.status === "fulfilled") articles.push(...r.value);
   }
-  return timeFilter(articles);
+  return timeFilter(await resolveMissingDates(articles));
+}
+
+async function resolveMissingDates(articles) {
+  const missing = articles.filter(a => !a.pubDate && a.link);
+  if (missing.length === 0) return articles;
+  const resolved = await Promise.allSettled(
+    missing.map(async (a) => {
+      try {
+        const res = await fetch(a.link, {
+          method: "HEAD",
+          redirect: "follow",
+          headers: { "User-Agent": "NewsAgg/1.0" },
+          signal: AbortSignal.timeout(5000),
+        });
+        const date = extractDateFromURL(res.url);
+        if (date) return { ...a, pubDate: date };
+      } catch {}
+      return a;
+    })
+  );
+  const fixed = new Map(resolved.filter(r => r.status === "fulfilled").map(r => [r.value.link, r.value]));
+  return articles.map(a => fixed.get(a.link) || a);
 }
 
 async function callDeepSeek(articles) {

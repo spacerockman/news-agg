@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.1] - 2026-06-13
+
+### Fixed
+- **CNN short-URL date resolution**: cnn.it links now resolved → real URL → date extracted
+- **36氪 date format**: `2026-06-13 14:00:00 +0800` → normalized to ISO before parsing
+- **Removed non-RSS CN feeds**: 香港01, 德国之声 return HTML pages, not RSS
+
+### Changed
+- AGENTS.md Rule #11: auto-push to GitHub after every change
+
+---
+
 ## [0.4.0] - 2026-06-13
 
 ### Added
