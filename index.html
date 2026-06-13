@@ -328,21 +328,30 @@ function openLink(el) {
   const desc = raw.replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').trim();
   if (!link) return;
 
-  // Show reading panel with RSS description immediately
   const overlay = $("#readerOverlay");
   const body = $("#readerBody");
   const titleEl = $("#readerTitle");
   overlay.classList.remove("hidden");
   titleEl.textContent = title;
-  if (desc) {
-    body.innerHTML = `<div class="rp-desc">${esc(desc)}</div>
-      <div class="rp-orig"><a href="${esc(link)}" target="_blank">Open original →</a></div>`;
-  } else {
-    body.innerHTML = `<div class="rp-desc" style="color:#999">No preview available</div>
-      <div class="rp-orig"><a href="${esc(link)}" target="_blank">Open in browser →</a></div>`;
-  }
+  body.classList.add("loading");
+  body.innerHTML = desc ? `<div class="rp-desc">${esc(desc)}</div>` : `<div class="rp-desc" style="color:#999">Loading article...</div>`;
 
-  // Background: trigger Safari with Reader mode for sites that support it
+  // Fetch full article text via Jina AI reader
+  fetch("/api/read?url=" + encodeURIComponent(link))
+    .then(r => r.json())
+    .then(json => {
+      body.classList.remove("loading");
+      const text = json.text || "";
+      const clean = text.replace(/!\[.*?\]\(.*?\)/g, "").replace(/\n{3,}/g, "\n\n").trim();
+      body.innerHTML = `<div class="rp-desc">${esc(clean)}</div>
+        <div class="rp-orig"><a href="${esc(link)}" target="_blank">Open original →</a></div>`;
+    })
+    .catch(() => {
+      body.classList.remove("loading");
+      if (!desc) body.innerHTML = `<div class="rp-desc" style="color:#999">Article unavailable</div>
+        <div class="rp-orig"><a href="${esc(link)}" target="_blank">Open in browser →</a></div>`;
+    });
+
   fetch("/api/open?url=" + encodeURIComponent(link));
 }
 
