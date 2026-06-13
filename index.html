@@ -303,7 +303,7 @@ function renderArticles(items) {
     const catClass = (a.category || "World").replace(/\s+/g, "");
     const catLabel = catT(a.category);
     const displayTitle = a.title;
-    return `<div class="art" data-link="${a.link}" data-title="${esc(displayTitle)}" data-desc="${esc(a.desc || '')}">
+    return `<div class="art" data-link="${a.link}" data-title="${esc(displayTitle)}" data-desc="${esc(a.desc || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;')}">
       <div class="t">${fmtTime(a.pubDate)}</div>
       <div class="cat ${catClass}"${!showCat?' style="opacity:.15"':''}>${catLabel}</div>
       <div class="bd" onclick="openLink(this)">
@@ -324,10 +324,9 @@ function openLink(el) {
   const art = el.closest(".art");
   const link = art?.dataset.link;
   const title = art?.dataset.title || "";
-  const desc = art?.dataset.desc || "";
+  const raw = art?.dataset.desc || "";
+  const desc = raw.replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').trim();
   if (!link) return;
-
-  const free = "https://www.removepaywall.com/search?url=" + encodeURIComponent(link);
 
   // Show reading panel with RSS description immediately
   const overlay = $("#readerOverlay");
@@ -337,14 +336,14 @@ function openLink(el) {
   titleEl.textContent = title;
   if (desc) {
     body.innerHTML = `<div class="rp-desc">${esc(desc)}</div>
-      <div class="rp-orig"><a href="${esc(free)}" target="_blank">Read full article →</a></div>`;
+      <div class="rp-orig"><a href="${esc(link)}" target="_blank">Open original →</a></div>`;
   } else {
     body.innerHTML = `<div class="rp-desc" style="color:#999">No preview available</div>
-      <div class="rp-orig"><a href="${esc(free)}" target="_blank">Open in browser →</a></div>`;
+      <div class="rp-orig"><a href="${esc(link)}" target="_blank">Open in browser →</a></div>`;
   }
 
-  // Background: trigger Safari with Reader mode (via removepaywall)
-  fetch("/api/open?url=" + encodeURIComponent(free));
+  // Background: trigger Safari with Reader mode for sites that support it
+  fetch("/api/open?url=" + encodeURIComponent(link));
 }
 
 function closeReader(e) {
