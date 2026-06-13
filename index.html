@@ -327,6 +327,8 @@ function openLink(el) {
   const desc = art?.dataset.desc || "";
   if (!link) return;
 
+  const free = "https://www.removepaywall.com/search?url=" + encodeURIComponent(link);
+
   // Show reading panel with RSS description immediately
   const overlay = $("#readerOverlay");
   const body = $("#readerBody");
@@ -335,14 +337,14 @@ function openLink(el) {
   titleEl.textContent = title;
   if (desc) {
     body.innerHTML = `<div class="rp-desc">${esc(desc)}</div>
-      <div class="rp-orig"><a href="${esc(link)}" target="_blank">Read full article →</a></div>`;
+      <div class="rp-orig"><a href="${esc(free)}" target="_blank">Read full article →</a></div>`;
   } else {
     body.innerHTML = `<div class="rp-desc" style="color:#999">No preview available</div>
-      <div class="rp-orig"><a href="${esc(link)}" target="_blank">Open in browser →</a></div>`;
+      <div class="rp-orig"><a href="${esc(free)}" target="_blank">Open in browser →</a></div>`;
   }
 
-  // Background: trigger Safari with Reader mode
-  fetch("/api/open?url=" + encodeURIComponent(link));
+  // Background: trigger Safari with Reader mode (via removepaywall)
+  fetch("/api/open?url=" + encodeURIComponent(free));
 }
 
 function closeReader(e) {
