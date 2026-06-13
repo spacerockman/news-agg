@@ -468,50 +468,19 @@ const server = createServer((req, res) => {
   if (url.pathname === "/api/open") {
     const target = url.searchParams.get("url");
     if (!target) return json({ error: "missing url" }, 400);
-    const safe = target.replace(/"/g, '\\"').replace(/\\/g, "\\\\");
+    const mode = url.searchParams.get("mode");
+    const openURL = mode === "original"
+      ? target
+      : `https://www.removepaywall.com/search?url=${encodeURIComponent(target)}`;
     const script = `
-      tell application "Safari"
-        activate
-        open location "https://www.removepaywall.com/search"
-        delay 3
-        tell front document
-          do JavaScript "
-            var input = document.getElementById('simple-search');
-            if (input) {
-              var setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-              setter.call(input, '${safe}');
-              input.dispatchEvent(new Event('input', {bubbles: true}));
-              setTimeout(function(){
-                var btn = document.getElementById('submitButton');
-                if (btn) btn.click();
-              }, 800);
-            }
-          "
+      on run argv
+        tell application "Safari"
+          activate
+          open location (item 1 of argv)
         end tell
-        delay 6
-        tell front document
-          try
-            set iframeSrc to do JavaScript "document.querySelector('iframe').src"
-            if iframeSrc is not "" and iframeSrc is not "https://www.removepaywall.com/search" then
-              set URL of front document to iframeSrc
-            end if
-          end try
-        end tell
-        delay 3
-      end tell
-      tell application "System Events"
-        tell process "Safari"
-          repeat 8 times
-            delay 0.8
-            try
-              click menu item "Show Reader" of menu "View" of menu bar 1
-              exit repeat
-            end try
-          end repeat
-        end tell
-      end tell
+      end run
     `;
-    execFile("osascript", ["-e", script], (err) => {
+    execFile("osascript", ["-e", script, openURL], (err) => {
       if (err) console.error("osascript:", err.message.slice(0, 80));
     });
     return json({ ok: true });

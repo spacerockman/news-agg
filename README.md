@@ -25,6 +25,7 @@ Then open http://localhost:18180 in Safari → pin as tab.
 - **AI dedup** via DeepSeek Flash — same stories merged, not duplicated
 - **Chinese translation** — toggle 中/En button
 - **White minimalist UI** — terminal aesthetic, text-only
+- **RemovePaywall open** — headline click opens Safari through RemovePaywall; `orig` opens the publisher URL
 - **iPhone access** — same WiFi, open Mac's IP:18180
 - **8-hour auto-refresh** — quiet 2AM-10AM
 
@@ -36,7 +37,8 @@ Then open http://localhost:18180 in Safari → pin as tab.
 | `1-5` | Filter country |
 | `0` | Show all |
 | `k` | Hide categories |
-| `⌘⇧R` | Safari Reader |
+| headline click | Open via RemovePaywall |
+| `orig` | Open original source |
 
 ## Manage Service
 

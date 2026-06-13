@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.2] - 2026-06-13
+
+### Added
+- **RemovePaywall opening flow**: clicking a headline now opens Safari at `removepaywall.com/search?url=...` for the article.
+- **Original source fallback**: each article source line now includes an `orig` link to open the publisher URL directly.
+
+### Changed
+- Simplified `/api/open` to direct Safari navigation instead of delayed DOM injection into RemovePaywall.
+- Footer hint now documents the RemovePaywall default.
+
+---
+
 ## [0.4.1] - 2026-06-13
 
 ### Fixed

@@ -1,6 +1,6 @@
 # News Aggregator — AI Agent Context
 
-> Last updated: 2026-06-13 (v0.4.0)
+> Last updated: 2026-06-13 (v0.4.2)
 > **⚠️ CRITICAL: After every change to this project, update this file and CHANGELOG.md.**
 > opencode loads these via `.opencode/opencode.json` → `"instructions": ["AGENTS.md", "CHANGELOG.md"]`
 
@@ -65,6 +65,7 @@ HTTP Routes:
   GET /              → serve index.html from memory
   GET /api/news      → return cache (raw if no finalCache, finalCache if ready)
   GET /api/refresh   → force cache refresh
+  GET /api/open      → open Safari (default RemovePaywall, mode=original opens source)
 ```
 
 ### Frontend (`index.html`)
@@ -82,6 +83,7 @@ Page load → load(true)
   ├─ renderArticles() → mixed timeline, sorted by pubDate desc
   │   └─ lang==="zh" && titleZh → show Chinese title
   │   └─ merged → show source list with "merged" badge
+  │   └─ click title → /api/open RemovePaywall; "orig" → publisher URL
   │
   ├─ switchLang() → toggle en/zh, re-render everything
   │
@@ -196,7 +198,8 @@ bash ~/Desktop/news-agg/run.sh stop
 | `1-5` | Filter US/UK/AU/JP/CN |
 | `0` | Show all countries |
 | `k` | Toggle category visibility |
-| `⌘⇧R` | Safari Reader mode (on article pages) |
+| click title | Open article via RemovePaywall in Safari |
+| `orig` | Open publisher URL directly |
 
 ---
 
