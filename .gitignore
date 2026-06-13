@@ -1,0 +1,4 @@
+# News Aggregator project gitignore
+node_modules/
+server.log
+.DS_Store

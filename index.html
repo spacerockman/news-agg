@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>news feed</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#ffffff;
+  --surface:#f5f5f5;
+  --border:#e0e0e0;
+  --text:#333333;
+  --muted:#999999;
+  --accent:#2563eb;
+  --green:#16a34a;
+  --cat-world:#2563eb;
+  --cat-politics:#ea580c;
+  --cat-business:#7c3aed;
+  --cat-tech:#0891b2;
+  --cat-science:#16a34a;
+  --cat-health:#db2777;
+  --cat-sports:#ca8a04;
+  --cat-entertainment:#c026d3;
+}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:"SF Mono","Menlo","Monaco","Courier New",monospace;
+  font-size:13px;
+  line-height:1.6;
+  max-width:900px;
+  margin:0 auto;
+  padding:16px 20px 40px;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* header */
+.header{display:flex;justify-content:space-between;align-items:baseline;padding:10px 0 8px;border-bottom:1px solid var(--border);margin-bottom:0}
+.header h1{font-size:14px;font-weight:700;letter-spacing:1.5px;color:#111}
+.header .meta{color:var(--muted);font-size:11px;display:flex;align-items:center;gap:8px}
+.header .meta .time{color:var(--green)}
+.header .meta .btn{color:var(--muted);cursor:pointer;padding:2px 6px;border:1px solid var(--border);border-radius:3px;font-size:11px;font-family:inherit;background:var(--surface);transition:all .15s}
+.header .meta .btn:hover{color:#111;border-color:var(--accent);background:#e5e7eb}
+.header .meta .spinner{display:none;color:var(--accent)}
+.header .meta .btn.loading{pointer-events:none;opacity:.5}
+body.loading .spinner{display:inline}
+body.loading .btn{pointer-events:none;opacity:.5}
+
+/* status bar */
+.status{display:flex;gap:12px;padding:6px 0 10px;font-size:11px;color:var(--muted);border-bottom:1px solid var(--border);margin-bottom:8px;flex-wrap:wrap}
+.status .stat{display:flex;align-items:center;gap:4px}
+.status .stat .val{color:var(--text)}
+.status .badge{font-size:10px;padding:1px 5px;border-radius:3px;background:var(--surface);border:1px solid var(--border)}
+.status .badge.ok{color:var(--green);border-color:var(--green)}
+.status .badge.err{color:var(--cat-politics);border-color:var(--cat-politics)}
+
+/* filters */
+.filters{display:flex;gap:6px;padding:6px 0 10px;flex-wrap:wrap}
+.filters button{background:var(--surface);border:1px solid var(--border);color:var(--muted);padding:3px 10px;font:inherit;font-size:11px;cursor:pointer;border-radius:3px;transition:all .12s}
+.filters button:hover{color:#111;border-color:var(--accent)}
+.filters button.active{color:#111;border-color:var(--accent);background:#e5e7eb}
+.filters button[draggable]{cursor:grab}
+.filters button[draggable]:active{cursor:grabbing}
+.filters button.drag-over{border-color:var(--accent);background:#e5e7eb}
+
+/* article list */
+.list{min-height:200px}
+.art{padding:9px 0;border-bottom:1px solid #f0f0f0;display:grid;grid-template-columns:44px 82px 1fr;gap:8px;align-items:baseline;transition:background .1s;border-radius:2px;padding-left:4px;padding-right:4px}
+.art:hover{background:var(--surface)}
+.art .t{color:var(--muted);font-size:11px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.art .cat{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;padding:2px 4px;border-radius:2px;text-align:center;white-space:nowrap;border:1px solid transparent;align-self:center}
+.art .cat.World{color:var(--cat-world);border-color:var(--cat-world)}
+.art .cat.Politics{color:var(--cat-politics);border-color:var(--cat-politics)}
+.art .cat.Business{color:var(--cat-business);border-color:var(--cat-business)}
+.art .cat.Tech{color:var(--cat-tech);border-color:var(--cat-tech)}
+.art .cat.Science{color:var(--cat-science);border-color:var(--cat-science)}
+.art .cat.Health{color:var(--cat-health);border-color:var(--cat-health)}
+.art .cat.Sports{color:var(--cat-sports);border-color:var(--cat-sports)}
+.art .cat.Entertainment{color:var(--cat-entertainment);border-color:var(--cat-entertainment)}
+.art .bd{min-width:0;cursor:pointer}
+.art .bd .ttl{color:#111;font-size:13px;line-height:1.5}
+.art .bd .ttl:hover{color:var(--accent)}
+.art .bd .ttl .flags{font-size:12px;margin-right:4px}
+.art .bd .ttl .flag{display:inline-block}
+.art .bd .src{color:var(--muted);font-size:11px;margin-top:1px}
+.art .bd .src .dot{color:var(--border);margin:0 3px}
+.art .bd .src .merged-badge{color:var(--accent)}
+.art .bd .src .self-badge{color:var(--green)}
+
+/* loading */
+.skel{display:grid;grid-template-columns:44px 82px 1fr;gap:8px;padding:12px 4px;border-bottom:1px solid #f0f0f0}
+.skel .bar{height:13px;border-radius:3px;background:linear-gradient(90deg,var(--surface) 0%,#e5e5e5 50%,var(--surface) 100%);background-size:200% 100%;animation:shimmer 1.5s infinite}
+.skel .bar.t{grid-column:1}
+.skel .bar.c{grid-column:2}
+.skel .bar.b{grid-column:3;height:28px}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* empty */
+.empty{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty .icon{font-size:32px;margin-bottom:12px;opacity:.3}
+.empty .msg{font-size:13px}
+.empty .sub{font-size:11px;margin-top:6px}
+
+/* footer */
+.footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);display:flex;flex-wrap:wrap;gap:6px 16px;color:var(--muted);font-size:11px}
+.footer kbd{background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:0 4px;font:inherit;font-size:10px;color:var(--muted)}
+.footer .h{display:flex;gap:4px;align-items:center}
+.footer .h .hl{color:var(--muted)}
+.footer .h kbd{margin:0 1px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1 data-i18n="title">N E W S  F E E D</h1>
+  <div class="meta">
+    <button class="btn" id="langBtn" title="Switch language">中</button>
+    <span class="time" id="updateTime">--:--:--</span>
+    <span class="spinner">⟳</span>
+    <span class="btn" id="refreshBtn">↻</span>
+  </div>
+</div>
+
+<div class="status" id="statusBar">
+  <div class="stat"><span data-i18n="articles">articles</span> <span class="val" id="statTotal">0</span></div>
+  <div class="stat"><span data-i18n="merged">merged</span> <span class="val" id="statMerged">0</span></div>
+  <div class="stat"><span data-i18n="sources">sources</span> <span class="val" id="statSources">0</span></div>
+  <span class="badge ok" id="aiBadge">● AI</span>
+</div>
+
+<div class="filters" id="filters">
+</div>
+
+<div class="list" id="list"></div>
+
+<div class="footer">
+  <div class="h"><kbd>r</kbd> <span data-i18n="refresh">refresh</span></div>
+  <div class="h"><kbd>1-5</kbd> <span data-i18n="filter">filter</span></div>
+  <div class="h"><kbd>k</kbd> <span data-i18n="toggleCat">toggle cat</span></div>
+  <div class="h"><kbd>⌘⇧R</kbd> Safari Reader</div>
+  <div class="h">drag tags ↕</div>
+</div>
+
+<script>
+const TEXTS = {
+  en: {
+    title: "N E W S  F E E D",
+    articles: "articles", merged: "merged", sources: "sources",
+    all: "ALL", loading: "fetching news feeds...", loadingSub: "this may take a few seconds",
+    noNews: "no news in the last 12 hours",
+    fetchError: "failed to fetch news", fetchErrorSub: "check the server and try again",
+    refresh: "refresh", filter: "filter", toggleCat: "toggle cat", scroll: "scroll",
+    mergedBadge: "merged", aiScanning: "◌ AI scanning", aiPending: "◌ AI pending",
+    cats: { World:"World",Politics:"Politics",Business:"Business",Tech:"Tech",Science:"Science",Health:"Health",Sports:"Sports",Entertainment:"Entertainment" }
+  },
+  zh: {
+    title: "新 闻 聚 合",
+    articles: "文章", merged: "合并", sources: "来源",
+    all: "全部", loading: "正在抓取新闻...", loadingSub: "约需数秒",
+    noNews: "最近12小时无新闻",
+    fetchError: "获取新闻失败", fetchErrorSub: "请检查服务并重试",
+    refresh: "刷新", filter: "筛选", toggleCat: "隐藏分类", scroll: "滚动",
+    mergedBadge: "已合并", aiScanning: "◌ AI 处理中", aiPending: "◌ AI 等待中",
+    cats: { World:"国际",Politics:"政治",Business:"商业",Tech:"科技",Science:"科学",Health:"健康",Sports:"体育",Entertainment:"娱乐" }
+  }
+};
+
+let lang = localStorage.getItem("newsLang") || "en";
+let filterOrder = JSON.parse(localStorage.getItem("newsFilterOrder") || '["us","gb","au","jp","cn"]');
+let data = null;
+let filter = "all";
+let showCat = true;
+let loading = false;
+let aiPollTimer = null;
+let dragIdx = null;
+
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+
+function T(key) { return TEXTS[lang][key] || key; }
+function catT(cat) { return TEXTS[lang].cats[cat] || cat || "World"; }
+
+const FILTERS = [
+  { id: "all", label: "all", emoji: "" },
+  { id: "us", label: "US", emoji: "🇺🇸" },
+  { id: "gb", label: "UK", emoji: "🇬🇧" },
+  { id: "au", label: "AU", emoji: "🇦🇺" },
+  { id: "jp", label: "JP", emoji: "🇯🇵" },
+  { id: "cn", label: "CN", emoji: "🇨🇳" },
+];
+
+function renderFilters() {
+  const all = [{ id: "all", label: T("all"), emoji: "" }];
+  const ordered = all.concat(filterOrder.map(id => {
+    const f = FILTERS.find(x => x.id === id) || { id, label: id.toUpperCase(), emoji: "" };
+    return { ...f, label: f.id === "all" ? T("all") : f.label };
+  }));
+  $("#filters").innerHTML = ordered.map(f =>
+    `<button data-country="${f.id}"${f.id === filter ? ' class="active"' : ''}${f.id !== 'all' ? ' draggable="true"' : ''}>${f.emoji ? f.emoji + ' ' : ''}${f.label}</button>`
+  ).join("");
+  bindDrag();
+}
+
+function bindDrag() {
+  $$("#filters button[draggable]").forEach((btn, idx) => {
+    btn.ondragstart = e => { dragIdx = idx; e.dataTransfer.effectAllowed = "move"; btn.style.opacity = "0.4"; };
+    btn.ondragend = e => { $$("#filters button").forEach(b => { b.style.opacity = ""; b.classList.remove("drag-over"); }); };
+    btn.ondragover = e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; btn.classList.add("drag-over"); };
+    btn.ondragleave = e => { btn.classList.remove("drag-over"); };
+    btn.ondrop = e => {
+      e.preventDefault();
+      btn.classList.remove("drag-over");
+      if (dragIdx === null || dragIdx === idx) return;
+      const moved = filterOrder.splice(dragIdx, 1)[0];
+      filterOrder.splice(idx, 0, moved);
+      localStorage.setItem("newsFilterOrder", JSON.stringify(filterOrder));
+      renderFilters();
+      dragIdx = null;
+    };
+  });
+}
+
+function switchLang() {
+  lang = lang === "en" ? "zh" : "en";
+  localStorage.setItem("newsLang", lang);
+  $("#langBtn").textContent = lang === "zh" ? "En" : "中";
+  renderFilters();
+  applyI18n();
+  if (data) $("#list").innerHTML = renderArticles(data.items);
+}
+
+function applyI18n() {
+  $$("[data-i18n]").forEach(el => { el.textContent = T(el.dataset.i18n); });
+}
+
+function flagEmoji(code) {
+  const map = { us: "🇺🇸", gb: "🇬🇧", uk: "🇬🇧", au: "🇦🇺", jp: "🇯🇵", cn: "🇨🇳" };
+  return map[code] || code;
+}
+
+function fmtTime(dateStr) {
+  if (!dateStr) return "--:--";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "--:--";
+    return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+  } catch { return "--:--"; }
+}
+
+function renderSkeletons() {
+  let h = "";
+  for (let i = 0; i < 8; i++) {
+    h += `<div class="skel"><div class="bar t"></div><div class="bar c"></div><div class="bar b"></div></div>`;
+  }
+  return h;
+}
+
+function renderError(msg) {
+  return `<div class="empty"><div class="icon">⚠</div><div class="msg">${msg}</div><div class="sub">${T("fetchErrorSub")}</div></div>`;
+}
+
+function renderLoading() {
+  return `<div class="empty"><div class="icon">⟳</div><div class="msg">${T("loading")}</div><div class="sub">${T("loadingSub")}</div></div>`;
+}
+
+function renderEmpty() {
+  return `<div class="empty"><div class="icon">~</div><div class="msg">${T("noNews")}</div></div>`;
+}
+
+function renderArticles(items) {
+  const filtered = filter === "all" ? items : items.filter(a => a.countryFlags.includes(filter));
+  if (filtered.length === 0) return renderEmpty();
+  return filtered.map(a => {
+    const flags = [...new Set(a.countryFlags || [a.country])].map(c => flagEmoji(c)).join("");
+    const sources = a.sources.join(' <span class="dot">·</span> ');
+    const sourceLine = a.merged
+      ? `${sources} <span class="merged-badge">· ${T("mergedBadge")}</span>`
+      : `${sources}`;
+    const catClass = (a.category || "World").replace(/\s+/g, "");
+    const catLabel = catT(a.category);
+    const displayTitle = (lang === "zh" && a.titleZh) ? a.titleZh : a.title;
+    return `<div class="art" data-link="${a.link}" data-title="${esc(displayTitle)}">
+      <div class="t">${fmtTime(a.pubDate)}</div>
+      <div class="cat ${catClass}"${!showCat?' style="opacity:.15"':''}>${catLabel}</div>
+      <div class="bd" onclick="openLink(this)">
+        <div class="ttl">${flags ? `<span class="flags">${flags}</span>` : ""}${esc(displayTitle)}</div>
+        <div class="src">${sourceLine}</div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function esc(s) {
+  const d = document.createElement("div");
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function openLink(el) {
+  const link = el.closest(".art")?.dataset.link;
+  if (link) window.open(link, "_blank");
+}
+
+async function load(fetchFlag = true) {
+  if (loading) return;
+  loading = true;
+  document.body.classList.add("loading");
+  const list = $("#list");
+  if (fetchFlag) {
+    try {
+      const res = await fetch("/api/news");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      if (json.loading) {
+        list.innerHTML = renderLoading();
+        document.body.classList.remove("loading");
+        loading = false;
+        setTimeout(() => load(true), 2000);
+        return;
+      }
+      data = json;
+    } catch (e) {
+      list.innerHTML = renderError(T("fetchError"));
+      document.body.classList.remove("loading");
+      loading = false;
+      return;
+    }
+  }
+  if (!data) {
+    list.innerHTML = renderEmpty();
+    document.body.classList.remove("loading");
+    loading = false;
+    return;
+  }
+  const items = data.items || [];
+  $("#updateTime").textContent = data.updatedAt || "--:--:--";
+  $("#statTotal").textContent = data.totalRaw || items.length;
+  $("#statMerged").textContent = data.merged || 0;
+  $("#statSources").textContent = items.length;
+  const badge = $("#aiBadge");
+  if (data.aiReady) {
+    badge.textContent = "● AI";
+    badge.className = "badge ok";
+    clearPoll();
+  } else if (data.aiStatus === "unavailable") {
+    badge.textContent = T("aiPending");
+    badge.className = "badge err";
+    startPoll();
+  } else {
+    badge.textContent = T("aiScanning");
+    badge.className = "badge err";
+    startPoll();
+  }
+  list.innerHTML = renderArticles(items);
+  applyI18n();
+  document.body.classList.remove("loading");
+  loading = false;
+}
+
+function startPoll() {
+  if (aiPollTimer) return;
+  aiPollTimer = setInterval(() => load(true), 5000);
+}
+
+function clearPoll() {
+  if (aiPollTimer) { clearInterval(aiPollTimer); aiPollTimer = null; }
+}
+
+// Filters
+$("#filters").addEventListener("click", e => {
+  const btn = e.target.closest("button");
+  if (!btn) return;
+  $$("#filters button").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  filter = btn.dataset.country;
+  if (data) $("#list").innerHTML = renderArticles(data.items);
+});
+
+// Refresh
+$("#refreshBtn").addEventListener("click", () => load(true));
+
+// Language toggle
+$("#langBtn").addEventListener("click", switchLang);
+
+// Keyboard
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+  const key = e.key.toLowerCase();
+  if (key === "r") { e.preventDefault(); load(true); }
+  else if (key === "k") {
+    showCat = !showCat;
+    if (data) {
+      $$(".art .cat").forEach(el => { el.style.opacity = showCat ? "1" : ".15"; });
+    }
+  }
+  else if (key === "0") { const btn = document.querySelector('[data-country="all"]'); if (btn) btn.click(); }
+  else if (["1","2","3","4","5"].includes(key)) {
+    const countries = ["us","gb","au","jp","cn"];
+    const btn = document.querySelector(`[data-country="${countries[+key-1]}"]`);
+    if (btn) btn.click();
+  }
+});
+
+// Auto refresh every 8 hours (skip quiet hours 2AM-10AM)
+setInterval(() => {
+  const h = new Date().getHours();
+  if (h >= 2 && h < 10) return;
+  clearPoll(); load(true);
+}, 8 * 60 * 60 * 1000);
+
+// Init
+$("#langBtn").textContent = lang === "zh" ? "En" : "中";
+renderFilters();
+applyI18n();
+load(true);
+</script>
+</body>
+</html>
