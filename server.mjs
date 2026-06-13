@@ -468,15 +468,22 @@ const server = createServer(async (req, res) => {
   if (url.pathname === "/api/open") {
     const target = url.searchParams.get("url");
     if (!target) return json({ error: "missing url" }, 400);
+    const safe = target.replace(/"/g, '\\"').replace(/\\/g, "\\\\");
     const script = `
       tell application "Safari"
         activate
-        open location "${target.replace(/"/g, '\\"')}"
+        open location "https://www.removepaywall.com/search?url=${safe}"
+        delay 3
+        tell front document
+          try
+            do JavaScript "var i=document.getElementById('simple-search');if(i){i.value='${safe}';document.getElementById('submitButton').click();}"
+          end try
+        end tell
+        delay 5
       end tell
-      delay 0.5
       tell application "System Events"
         tell process "Safari"
-          repeat 10 times
+          repeat 8 times
             delay 0.8
             try
               click menu item "Show Reader" of menu "View" of menu bar 1
